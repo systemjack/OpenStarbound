@@ -41,6 +41,10 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 
+# Claude Code local files
+.claude/settings.local.json
+CLAUDE.local.md
+
 
 .vscode/
 
