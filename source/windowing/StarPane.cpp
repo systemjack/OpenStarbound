@@ -249,6 +249,14 @@ Vec2I Pane::centerOffset() const {
   return m_centerOffset;
 }
 
+String const& Pane::positionKey() const {
+  return m_positionKey;
+}
+
+void Pane::setPositionKey(String key) {
+  m_positionKey = std::move(key);
+}
+
 void Pane::setBG(BGResult const& res) {
   setBG(res.header, res.body, res.footer);
 }

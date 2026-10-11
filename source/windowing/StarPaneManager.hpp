@@ -81,14 +81,28 @@ public:
   void render();
   void update(float dt);
 
+  // Forgets all remembered pane positions and moves any pane with a position
+  // key back to the center of the window.
+  virtual void resetPanePositions();
+
+protected:
+  // Moves a pane with a position key back to its default centered position.
+  void recenterPane(PanePtr const& pane);
+
 private:
   Vec2I windowSize() const;
+  Vec2I centeredPosition(PanePtr const& pane) const;
+  // Keeps a remembered-position pane fully inside the window where it fits.
+  void clampPane(PanePtr const& pane);
+  void savePanePosition(PanePtr const& pane);
+  bool hasSavedPosition(PanePtr const& pane) const;
   Vec2I calculatePaneOffset(PanePtr const& pane) const;
   Vec2I calculateNewInterfacePosition(PanePtr const& pane, float interfaceScaleRatio) const;
   bool dismiss(PanePtr const& pane);
 
   GuiContext* m_context;
   float m_prevInterfaceScale;
+  Vec2I m_prevWindowSize;
 
   // Map of each pane layer, where the 0th pane is the topmost pane in each layer.
   Map<PaneLayer, OrderedMap<PanePtr, DismissCallback>> m_displayedPanes;

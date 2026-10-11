@@ -46,6 +46,14 @@
       "hover" : "/interface/optionsmenu/tricontrolsbuttonhover.png"
     },
 
+    "resetWindowPositions" : {
+      "type" : "button",
+      "position" : [125, 44],
+      "caption" : "Reset Windows",
+      "base" : "/interface/optionsmenu/duocontrolsbutton.png",
+      "hover" : "/interface/optionsmenu/duocontrolsbuttonhover.png"
+    },
+
     "volumeLabel" : { "position" : [119, 173] },
     "musicSlider" : { "position" : [62, 126] },
     

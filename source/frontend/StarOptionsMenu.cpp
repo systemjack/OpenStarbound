@@ -69,6 +69,9 @@ OptionsMenu::OptionsMenu(PaneManager* manager, UniverseClientPtr client)
   reader.registerCallback("showGraphics", [=](Widget*) {
       displayGraphics();
     });
+  reader.registerCallback("resetWindowPositions", [=](Widget*) {
+      m_paneManager->resetPanePositions();
+    });
 
   Json config = assets->json("/interface/optionsmenu/optionsmenu.config");
 

@@ -26,10 +26,55 @@ void PaneManager::displayPane(PaneLayer paneLayer, PanePtr const& pane, DismissC
   if (!m_displayedPanes[paneLayer].insertFront(pane, std::move(onDismiss)).second)
     throw GuiException("Pane displayed twice in PaneManager::displayPane");
 
-  if (!pane->hasDisplayed() && pane->anchor() == PaneAnchor::None)
-    pane->setPosition(Vec2I((windowSize() - pane->size()) / 2) + pane->centerOffset()); // center it
+  if (!pane->hasDisplayed() && pane->anchor() == PaneAnchor::None) {
+    if (hasSavedPosition(pane)) {
+      auto saved = Root::singleton().configuration()->get("paneSavedPositions", JsonObject{});
+      pane->setPosition(centeredPosition(pane) + jsonToVec2I(saved.get(pane->positionKey())));
+    } else
+      pane->setPosition(centeredPosition(pane)); // center it
+  }
+  clampPane(pane);
 
   pane->displayed();
+}
+
+bool PaneManager::hasSavedPosition(PanePtr const& pane) const {
+  if (pane->positionKey().empty())
+    return false;
+  return Root::singleton().configuration()->get("paneSavedPositions", JsonObject{}).contains(pane->positionKey());
+}
+
+Vec2I PaneManager::centeredPosition(PanePtr const& pane) const {
+  return Vec2I((windowSize() - pane->size()) / 2) + pane->centerOffset();
+}
+
+void PaneManager::clampPane(PanePtr const& pane) {
+  if (pane->positionKey().empty() || pane->anchor() != PaneAnchor::None)
+    return;
+  Vec2I max = (windowSize() - pane->size()).piecewiseMax(Vec2I());
+  pane->setPosition(pane->relativePosition().piecewiseClamp(Vec2I(), max));
+}
+
+void PaneManager::savePanePosition(PanePtr const& pane) {
+  if (pane->positionKey().empty() || pane->anchor() != PaneAnchor::None)
+    return;
+  auto configuration = Root::singleton().configuration();
+  auto saved = configuration->get("paneSavedPositions", JsonObject{}).toObject();
+  saved[pane->positionKey()] = jsonFromVec2I(pane->relativePosition() - centeredPosition(pane));
+  configuration->set("paneSavedPositions", saved);
+}
+
+void PaneManager::recenterPane(PanePtr const& pane) {
+  if (!pane->positionKey().empty() && pane->anchor() == PaneAnchor::None)
+    pane->setPosition(centeredPosition(pane));
+}
+
+void PaneManager::resetPanePositions() {
+  Root::singleton().configuration()->set("paneSavedPositions", JsonObject{});
+  for (auto const& layerPair : m_displayedPanes) {
+    for (auto const& panePair : layerPair.second)
+      recenterPane(panePair.first);
+  }
 }
 
 bool PaneManager::isDisplayed(PanePtr const& pane) const {
@@ -88,6 +133,10 @@ void PaneManager::bringToTop(PanePtr const& pane) {
 }
 
 void PaneManager::bringPaneAdjacent(PanePtr const& anchor, PanePtr const& adjacent, int gap) {
+  // a position the player chose for this pane wins over automatic placement
+  if (hasSavedPosition(adjacent))
+    return;
+
   Vec2I centerAdjacent = anchor->position() + (anchor->size() / 2) - (adjacent->size() / 2);
   centerAdjacent = centerAdjacent.piecewiseClamp(Vec2I(), windowSize() - adjacent->size()); // keeps pane inside window
 
@@ -221,6 +270,7 @@ bool PaneManager::sendInputEvent(InputEvent const& event) {
       for (auto const& panePair : layerPair.second) {
         if (panePair.first->dragActive()) {
           panePair.first->setDragActive(false, {});
+          savePanePosition(panePair.first);
           return true;
         }
       }
@@ -284,6 +334,15 @@ void PaneManager::render() {
         panePair.first->setDrawingOffset(calculatePaneOffset(panePair.first));
         panePair.first->render(RectI(Vec2I(), windowSize()));
       }
+    }
+  }
+
+  // When the window size changes, keep remembered-position panes reachable
+  if (m_prevWindowSize != windowSize()) {
+    m_prevWindowSize = windowSize();
+    for (auto const& layerPair : m_displayedPanes) {
+      for (auto const& panePair : layerPair.second)
+        clampPane(panePair.first);
     }
   }
 

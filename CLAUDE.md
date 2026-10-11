@@ -18,7 +18,9 @@ cmake --build --preset=windows-release-local
 - Compiler is **clang-cl via standalone LLVM** (winget `LLVM.LLVM`), with the MSVC headers/libs from VS 2022. Ninja generator, vcpkg triplet `x64-windows-mixed-md-clang` (in `triplets/`).
 - Output goes to `dist/` (gitignored): `starbound.exe`, `starbound_server.exe`, tools, and test binaries. Build tree is `build/windows-release/`.
 - Builds are incremental. Don't delete `build/` unless the CMake cache is corrupt (a stale cache after a toolchain change is the usual reason).
-- `dist/` needs `sbinit.config` (copy from `scripts/windows/sbinit.config`) and `assets/packed.pak` from a Starbound install. `assets/` also holds the `opensb` asset dir; `packed.pak` is gitignored.
+- `dist/` needs `sbinit.config` (copy from `scripts/windows/sbinit.config`, and point the mods entry at `..\mods\`) and `assets/packed.pak` from a Starbound install (gitignored). `assets/opensb/` holds OpenStarbound's own assets.
+- Mods for play-testing go in `mods/` at the repo root (gitignored), so wiping `dist/` never loses them. `dist/` itself is gitignored.
+- `reference/` (gitignored) holds material for reading only: `reference/vanilla/` (vanilla assets unpacked from `packed.pak` with `dist/asset_unpacker.exe`) and `reference/FrackinUniverse/`. It is deliberately outside every asset directory, so the game never loads it. Use it to see how things are done and to check compatibility.
 - First configure is slow (vcpkg builds dependencies); after that it is cached.
 
 ## Tests
@@ -39,7 +41,7 @@ cmake --build --preset=windows-release-local
 | `test/` | Unit tests |
 | `extern/` | Vendored third-party code |
 
-Game data: `assets/opensb/` (OpenStarbound's additions and `.patch` files over vanilla assets), `assets/packed.pak` (vanilla, not in git). UI layouts are JSON under `assets/opensb/interface/`. Lua docs are in `doc/lua/`.
+Game data: `assets/opensb/` (OpenStarbound's additions and `.patch` files over vanilla assets), `assets/packed.pak` (vanilla, not in git; unpacked copy in `reference/vanilla/`). UI layouts are JSON under `assets/opensb/interface/`. Lua docs are in `doc/lua/`.
 
 ## Conventions
 

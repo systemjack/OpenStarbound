@@ -33,6 +33,9 @@ public:
   // Returns whether the pane is now displayed.
   bool toggleRegisteredPane(KeyT const& paneId);
 
+  // Also recenters registered panes that are not currently displayed.
+  void resetPanePositions() override;
+
 private:
   struct PaneInfo {
     PaneLayer layer;
@@ -130,4 +133,12 @@ typename RegisteredPaneManager<KeyT>::PaneInfo const& RegisteredPaneManager<KeyT
     return *p;
   throw GuiException(strf("No registered pane with name '{}' found in  RegisteredPaneManager", outputAny(paneId)));
 }
+
+template <typename KeyT>
+void RegisteredPaneManager<KeyT>::resetPanePositions() {
+  PaneManager::resetPanePositions();
+  for (auto const& p : m_registeredPanes)
+    recenterPane(p.second.pane);
+}
+
 }

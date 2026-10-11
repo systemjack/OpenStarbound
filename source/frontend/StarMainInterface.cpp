@@ -196,6 +196,12 @@ MainInterface::MainInterface(UniverseClientPtr client, WorldPainterPtr painter, 
 
   m_paneManager.registerPane(MainInterfacePanes::CharacterSwap, PaneLayer::Window, charSelectionMenu);
 
+  // Windows whose position is remembered between sessions (see paneSavedPositions)
+  for (auto paneId : {MainInterfacePanes::Inventory, MainInterfacePanes::CraftingPlain, MainInterfacePanes::Codex,
+           MainInterfacePanes::QuestLog, MainInterfacePanes::Songbook, MainInterfacePanes::Ai,
+           MainInterfacePanes::Collections, MainInterfacePanes::MmUpgrade})
+    m_paneManager.registeredPane(paneId)->setPositionKey(MainInterfacePanesNames.getRight(paneId));
+
   m_nameplatePainter = make_shared<NameplatePainter>();
   m_questIndicatorPainter = make_shared<QuestIndicatorPainter>(m_client);
   m_chatBubbleManager = make_shared<ChatBubbleManager>();
@@ -227,6 +233,8 @@ void MainInterface::openCraftingWindow(Json const& config, EntityId sourceEntity
   }
 
   m_craftingWindow = make_shared<CraftingPane>(m_client->worldClient(), m_client->mainPlayer(), config, sourceEntityId);
+  // one remembered position per station type (spinning wheel, furnace, ...), keyed by its window config
+  m_craftingWindow->setPositionKey(strf("Crafting:{}", config.getString("config", "/interface/windowconfig/crafting.config")));
   m_paneManager.displayPane(PaneLayer::Window, m_craftingWindow, [this](PanePtr const&) {
     if (auto player = m_client->mainPlayer())
       player->clearSwap();
@@ -245,6 +253,7 @@ void MainInterface::openMerchantWindow(Json const& config, EntityId sourceEntity
   bool openWithInventory = config.getBool("openWithInventory", true);
   bool closeWithInventory = config.getBool("closeWithInventory", !m_paneManager.registeredPaneIsDisplayed(MainInterfacePanes::Inventory));
   m_merchantWindow = make_shared<MerchantPane>(m_client->worldClient(), m_client->mainPlayer(), config, sourceEntityId);
+  m_merchantWindow->setPositionKey("Merchant");
   m_paneManager.displayPane(PaneLayer::Window, m_merchantWindow, [this, closeWithInventory](PanePtr const&) {
     if (closeWithInventory)
       m_paneManager.dismissRegisteredPane(MainInterfacePanes::Inventory);
@@ -428,6 +437,7 @@ void MainInterface::handleInteractAction(InteractAction interactAction) {
     m_paneManager.displayRegisteredPane(MainInterfacePanes::Inventory);
 
     m_containerPane = make_shared<ContainerPane>(world, m_client->mainPlayer(), m_containerInteractor);
+    m_containerPane->setPositionKey("Container");
     m_paneManager.displayPane(PaneLayer::Window, m_containerPane, [this, closeWithInventory](PanePtr const&) {
       if (closeWithInventory)
         m_paneManager.dismissRegisteredPane(MainInterfacePanes::Inventory);
@@ -1681,6 +1691,13 @@ void MainInterface::displayScriptPane(ScriptPanePtr& scriptPane, EntityId source
  // keep any number of script panes open with null source entities
   if (sourceEntity != NullEntityId)
     m_interactionScriptPanes[sourceEntity] = scriptPane;
+
+  // script panes are remembered per config asset path; inline configs have no stable identity
+  auto const& rawConfig = scriptPane->rawConfig();
+  if (rawConfig.type() == Json::Type::String)
+    scriptPane->setPositionKey(strf("Script:{}", rawConfig.toString()));
+  else if (rawConfig.type() == Json::Type::Object && rawConfig.contains("baseConfig"))
+    scriptPane->setPositionKey(strf("Script:{}", rawConfig.getString("baseConfig")));
 
   PaneLayer layer = PaneLayer::Window;
   if (auto layerName = scriptPane->config().optString("paneLayer"))

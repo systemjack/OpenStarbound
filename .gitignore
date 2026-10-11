@@ -21,6 +21,7 @@ enc_temp_folder/
 /assets/user/
 /assets/devel/
 /assets/packed.pak
+/reference/
 /mods/*.pak
 /mods/*
 */.vs/

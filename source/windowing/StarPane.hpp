@@ -44,6 +44,11 @@ public:
 
   Vec2I centerOffset() const;
 
+  // If non-empty, this pane's position is remembered (keyed by this name) in
+  // the client configuration and restored when the pane is first displayed.
+  String const& positionKey() const;
+  void setPositionKey(String key);
+
   // members are drawn strictly in the order they are added,
   // so add them in the correct order.
 
@@ -111,6 +116,7 @@ protected:
   Vec2I m_dragMouseOrigin;
   bool m_lockPosition;
   Vec2I m_centerOffset;
+  String m_positionKey;
 
   WidgetPtr m_mouseOver;
   WidgetPtr m_clickDown;

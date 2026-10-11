@@ -82,6 +82,47 @@ Status: `[ ]` idea, `[~]` in progress, `[x]` done. Add findings and file pointer
 - [ ] Phase 3: pane manager pane (recover individual panes)
 - [ ] Phase 4: extra per-pane properties (pin, lock drag, auto-hide, transparency)
 
+## 3. Runtime asset reload (ideas)
+
+**What exists today:** the in-game chat commands `/reload` (`Root::reload`, reloads Root from disk) and `/hotReload` (`Assets::hotReload`, in `source/base/StarAssets.cpp`, which only clears the asset cache and the frame specs and then notifies reload listeners). Nothing scoped to a single asset source or mod.
+
+**Idea:** a command such as `/reloadAssets [source]` that re-scans one asset directory or mod (picking up new, changed, and deleted files) without restarting, so asset development under `assets/opensb` or a mod folder is faster.
+
+**Open questions:**
+- `hotReload` does not re-scan the file lists (`m_files`), so new files are not seen. Does `Root::reload` re-scan, and at what cost?
+- Patches and load order: re-scanning a single source means rebuilding the combined file map for every path that source touches (patches in other sources apply on top).
+- Cached `Json`/image/audio objects already held by game code (item databases, entity factories) need the reload listeners triggered, as `hotReload` does.
+
+- [ ] Read `Root::reload` and `Assets` construction to see how sources are scanned
+- [ ] Prototype per-source reload
+
+## Dev setup notes
+
+- **Reference material** lives in `reference/` (gitignored, outside every asset directory so the game never loads it): `reference/vanilla/` is the vanilla `packed.pak` unpacked with `dist/asset_unpacker.exe`, and `reference/FrackinUniverse/` is the FrackinUniverse mod, for reading how it does things and checking compatibility. The game itself still runs from `assets/packed.pak` + `assets/opensb/`.
+- **Running from unpacked vanilla assets did not work.** An attempt with the vanilla files in `assets/vanilla/` stopped after the `postLoad` scripts ran, with no error in `dist/logs/starbound.log`. It is not yet known whether it hung or crashed. Worth investigating later (a debug-level log and a debugger run would show where). Until then, use the pak.
+- Mods for play-testing go in `mods/` at the repo root (gitignored); `dist/sbinit.config` points at `..\mods\`.
+
+## Command line parameters
+
+Parsing is in `source/core/StarOptionParser.cpp`; options are registered in `source/base/StarVersionOptionParser.cpp` and `source/game/StarRootLoader.cpp`. Flags use a **single dash** (`-bootconfig x`), not `--` (a bare `--` ends flag parsing). Unknown flags are an error. Parameters take the next argument as their value. The same options apply to `starbound.exe` (client) and `starbound_server.exe`; the only differences are the defaults.
+
+| Option | Argument | Meaning | Client default | Server default |
+|---|---|---|---|---|
+| `-help` | | Print usage and exit | | |
+| `-version` | | Print version info and exit | | |
+| `-bootconfig` | file | Boot config (asset directories, storage dir, asset settings, default configuration overrides) | `sbinit.config` | `sbinit.config` |
+| `-logfile` | file | Log file, relative to the log directory | `starbound.log` | `starbound_server.log` |
+| `-loglevel` | `debug\|info\|warn\|error` | Logging level | `info` | `info` |
+| `-quiet` | | Do not log to stdout | off | off |
+| `-verbose` | | Log to stdout | on | on |
+| `-runtimeconfig` | | Runtime configuration file path | `starbound.config` | `starbound_server.config` |
+
+**Known bug:** `-runtimeconfig` is registered as a *switch* (`addSwitch`) in `StarRootLoader.cpp:133` but read as a *parameter* (`options.parameters.value("runtimeconfig")`, line 209). As written, `-runtimeconfig <path>` fails with "Too many positional arguments" and the value can never be read; the default file is always used. Fix: change it to `addParameter("runtimeconfig", "runtimeconfig", Optional, ...)`.
+
+Note: `starbound.exe` is a Windows GUI-subsystem program, so `-help` and `-version` output may not show in a console. `starbound_server.exe -help` prints the full list.
+
+Everything else is configured in `sbinit.config` (boot) and the runtime config (`starbound.config` in the storage directory), not on the command line. Other tools in `dist/` have their own arguments: `asset_packer [-c config] [-s] [-v] <assets folder> <output pak>`, `asset_unpacker [-v] <input pak> <output folder>`, `btree_repacker <input> [output]`, plus several map and generation utilities in `source/utility/`.
+
 ## Backlog
 
 (Add new ideas here.)
