@@ -102,6 +102,14 @@ Status: `[ ]` idea, `[~]` in progress, `[x]` done. Add findings and file pointer
 - **Running from unpacked vanilla assets did not work.** An attempt with the vanilla files in `assets/vanilla/` stopped after the `postLoad` scripts ran, with no error in `dist/logs/starbound.log`. It is not yet known whether it hung or crashed. Worth investigating later (a debug-level log and a debugger run would show where). Until then, use the pak.
 - Mods for play-testing go in `mods/` at the repo root (gitignored); `dist/sbinit.config` points at `..\mods\`.
 
+- **Git speed settings (local to this clone):** `core.fsmonitor` and `core.untrackedCache` are turned on in `.git/config` to speed up `git status`. To undo:
+  ```
+  git config --local --unset core.fsmonitor
+  git config --local --unset core.untrackedCache
+  git fsmonitor--daemon stop
+  ```
+  Check with `git fsmonitor--daemon status`. Another clone (e.g. a collaborator's) needs its own `git config core.fsmonitor true` and `git config core.untrackedCache true`.
+
 ## Command line parameters
 
 Parsing is in `source/core/StarOptionParser.cpp`; options are registered in `source/base/StarVersionOptionParser.cpp` and `source/game/StarRootLoader.cpp`. Flags use a **single dash** (`-bootconfig x`), not `--` (a bare `--` ends flag parsing). Unknown flags are an error. Parameters take the next argument as their value. The same options apply to `starbound.exe` (client) and `starbound_server.exe`; the only differences are the defaults.
